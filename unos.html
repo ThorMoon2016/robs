@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <script src="https://www.paypal.com/sdk/js?client-id=Afzc1IlgRQANkX3NGrGcsvTxA5EtNwUQZeLbuicoNCM-hZxx13uq2LyJESOmeue6FLZJELnCp4xTOoXn"></script>
-
+    
 <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-storage.js"></script>
 <script>
     // Inicijalizacija Firebase Storage
@@ -15,7 +15,8 @@
   
     // Ovdje možete koristiti `storage` objekt za rad sa Storageom
 </script>
-    
+
+
     <script src="index.js"></script>
 
     <script type="module">
@@ -195,21 +196,46 @@
             const stranica = document.getElementById('stranica').value;
             const akcija = document.getElementById('akcija').checked; // Provjeri je li označeno polje za provjeru "Akcija"
     
-            const noviProizvod = {
-                naziv: naziv,
-                cijena: cijena,
-                slika: slika.name, // Koristimo samo ime slike za sada
-                stranica: stranica,
-                akcija: akcija // Dodaj informaciju o akciji u objekt proizvoda
-            };
+            // Inicijalizacija Firebase Storage
+            const storage = firebase.storage();
     
-            let proizvodi = JSON.parse(localStorage.getItem('proizvodi')) || [];
-            proizvodi.push(noviProizvod);
-            localStorage.setItem('proizvodi', JSON.stringify(proizvodi));
+            // Reference na Firebase Storage
+            const storageRef = storage.ref();
     
-            window.location.href = stranica; // Preusmjeri na odabranu stranicu
+            // Kreiranje referenca na mjesto gdje će se spremiti slika
+            const slikaRef = storageRef.child('slike/' + slika.name);
+    
+            // Upload slike u Firebase Storage
+            slikaRef.put(slika).then((snapshot) => {
+                console.log('Uploaded a blob or file!', snapshot);
+    
+                // Nakon što je slika uspješno uploadana, spremanje podataka o proizvodu u Firebase bazu podataka
+                const noviProizvod = {
+                    naziv: naziv,
+                    cijena: cijena,
+                    imageUrl: snapshot.metadata.fullPath, // Pohranite putanju slike u Firebase Storageu
+                    stranica: stranica,
+                    akcija: akcija
+                };
+    
+                // Referenca na Firebase bazu podataka
+                const db = firebase.firestore();
+    
+                // Dodavanje podataka o proizvodu u bazu podataka
+                db.collection('proizvodi').add(noviProizvod)
+                    .then((docRef) => {
+                        console.log('Document written with ID: ', docRef.id);
+                        window.location.href = stranica; // Preusmjeri na odabranu stranicu
+                    })
+                    .catch((error) => {
+                        console.error('Error adding document: ', error);
+                    });
+            }).catch((error) => {
+                console.error('Error uploading file:', error);
+            });
         }
     </script>
+    
     
 
     
